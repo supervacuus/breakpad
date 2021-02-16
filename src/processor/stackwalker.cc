@@ -335,9 +335,11 @@ bool Stackwalker::TerminateWalk(uint64_t caller_ip,
   // Treat an instruction address less than 4k as end-of-stack.
   // (using InstructionAddressSeemsValid() here is very tempting,
   // but we need to handle JITted code)
-  if (caller_ip < (1 << 12)) {
-    return true;
-  }
+  // XXX(swatinem): This condition is a bit too restrictive, as we encounter NULL
+  // pointers here in the wild, and we can trace over these addresses without problems.
+  // if (caller_ip < (1 << 12)) {
+  //   return true;
+  // }
 
   // NOTE: The stack address range is implicitly checked
   //   when the stack memory is accessed.
