@@ -69,6 +69,8 @@ class CFIFrameInfo {
   template<typename ValueType> class RegisterValueMap: 
     public map<string, ValueType> { };
 
+  virtual ~CFIFrameInfo() {}
+
   // Set the expression for computing a call frame address, return
   // address, or register's value. At least the CFA rule and the RA
   // rule must be set before calling FindCallerRegs.
