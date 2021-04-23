@@ -102,6 +102,13 @@ class CFIFrameInfo {
                       const MemoryRegion& memory,
                       RegisterValueMap<ValueType>* caller_registers) const;
 
+  virtual bool FindCallerRegs(const RegisterValueMap<uint32_t>& registers,
+                              const MemoryRegion& memory,
+                              RegisterValueMap<uint32_t>* caller_registers) const;
+
+  virtual bool FindCallerRegs(const RegisterValueMap<uint64_t>& registers,
+                              const MemoryRegion& memory,
+                              RegisterValueMap<uint64_t>* caller_registers) const;
   // Serialize the rules in this object into a string in the format
   // of STACK CFI records.
   string Serialize() const;
