@@ -255,7 +255,7 @@ TEST(Write, NoCFI) {
   // the module must work fine.
   m.SetLoadAddress(0x2ab698b0b6407073ULL);
 
-  m.Write(s, NO_CFI);
+  m.Write(s, SYMBOLS_AND_FILES | INLINES);
   string contents = s.str();
   EXPECT_STREQ("MODULE os-name architecture id-string name with spaces\n"
                "FILE 0 filename.cc\n"
@@ -265,7 +265,7 @@ TEST(Write, NoCFI) {
                contents.c_str());
 }
 
-TEST(Construct, AddFunctions) {
+TEST(Construct, AddFunction) {
   stringstream s;
   Module m(MODULE_NAME, MODULE_OS, MODULE_ARCH, MODULE_ID);
 
@@ -287,7 +287,8 @@ TEST(Construct, AddFunctions) {
   vec.push_back(function1);
   vec.push_back(function2);
 
-  m.AddFunctions(vec.begin(), vec.end());
+  for (Module::Function* func: vec)
+    m.AddFunction(func);
 
   m.Write(s, ALL_SYMBOL_DATA);
   string contents = s.str();

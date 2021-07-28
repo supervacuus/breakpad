@@ -216,13 +216,8 @@ class Module {
   // Add FUNCTION to the module. FUNCTION's name must not be empty.
   // This module owns all Function objects added with this function:
   // destroying the module destroys them as well.
-  void AddFunction(Function* function);
-
-  // Add all the functions in [BEGIN,END) to the module.
-  // This module owns all Function objects added with this function:
-  // destroying the module destroys them as well.
-  void AddFunctions(vector<Function*>::iterator begin,
-                    vector<Function*>::iterator end);
+  // Return false if the function is duplicate and needs to be freed.
+  bool AddFunction(Function* function);
 
   // Add STACK_FRAME_ENTRY to the module.
   // This module owns all StackFrameEntry objects added with this
@@ -284,11 +279,11 @@ class Module {
   // breakpad symbol format. Return true if all goes well, or false if
   // an error occurs. This method writes out:
   // - a header based on the values given to the constructor,
-  // If symbol_data is not ONLY_CFI then:
+  // If symbol_data is not CFI then:
   // - the source files added via FindFile,
   // - the functions added via AddFunctions, each with its lines,
   // - all public records,
-  // If symbol_data is not NO_CFI then:
+  // If symbol_data is CFI then:
   // - all CFI records.
   // Addresses in the output are all relative to the load address
   // established by SetLoadAddress.
