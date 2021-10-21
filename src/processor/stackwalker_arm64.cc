@@ -287,6 +287,27 @@ void StackwalkerARM64::CorrectRegLRByFramePointer(
   last_frame->context.iregs[MD_CONTEXT_ARM64_REG_LR] = last_lr;
 }
 
+StackFrameARM64* StackwalkerARM64::GetCallerByLinkRegister(
+    const vector<StackFrame*>& frames) {
+  StackFrameARM64* last_frame = static_cast<StackFrameARM64*>(frames.back());
+  uint64_t last_lr = last_frame->context.iregs[MD_CONTEXT_ARM64_REG_LR];
+
+  if (!(last_frame->context_validity & StackFrameARM64::CONTEXT_VALID_LR) ||
+      !InstructionAddressSeemsValid(last_lr)) {
+    return NULL;
+  }
+
+  StackFrameARM64* frame = new StackFrameARM64();
+
+  frame->trust = StackFrame::FRAME_TRUST_FP; // not really FP, but not scan either
+  frame->context = last_frame->context;
+  frame->context.iregs[MD_CONTEXT_ARM64_REG_PC] = last_lr;
+  frame->context_validity =
+      context_frame_validity_ & (~StackFrameARM64::CONTEXT_VALID_LR);
+
+  return frame;
+}
+
 StackFrame* StackwalkerARM64::GetCallerFrame(const CallStack* stack,
                                              bool stack_scan_allowed) {
   if (!memory_ || !stack) {
@@ -303,6 +324,12 @@ StackFrame* StackwalkerARM64::GetCallerFrame(const CallStack* stack,
       frame_symbolizer_->FindCFIFrameInfo(last_frame));
   if (cfi_frame_info.get())
     frame.reset(GetCallerByCFIFrameInfo(frames, cfi_frame_info.get()));
+
+  // For the first frame, return address may still be in the LR register at
+  // entry. Prefer to use LR register than scanning stack if LR register value
+  // points to a function range.
+  if (frames.size() == 1 && !frame.get())
+    frame.reset(GetCallerByLinkRegister(frames));
 
   // If CFI failed, or there wasn't CFI available, fall back to frame pointer.
   if (!frame.get())

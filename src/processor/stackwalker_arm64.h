@@ -86,6 +86,10 @@ class StackwalkerARM64 : public Stackwalker {
   // Return NULL on failure.
   StackFrameARM64* GetCallerByFramePointer(const vector<StackFrame*>& frames);
 
+  // Use the link register if it seems to be a valid function address.
+  // The caller takes ownership of the returned frame. Return NULL on failure.
+  StackFrameARM64* GetCallerByLinkRegister(const vector<StackFrame*>& frames);
+
   // Scan the stack for plausible return addresses. The caller takes ownership
   // of the returned frame. Return NULL on failure.
   StackFrameARM64* GetCallerByStackScan(const vector<StackFrame*>& frames);
