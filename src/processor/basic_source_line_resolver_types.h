@@ -37,6 +37,7 @@
 #ifndef PROCESSOR_BASIC_SOURCE_LINE_RESOLVER_TYPES_H__
 #define PROCESSOR_BASIC_SOURCE_LINE_RESOLVER_TYPES_H__
 
+#include <deque>
 #include <map>
 #include <string>
 
@@ -66,10 +67,24 @@ BasicSourceLineResolver::Function : public SourceLineResolverBase::Function {
                                    code_size,
                                    set_parameter_size,
                                    is_mutiple),
-                              lines() { }
-  RangeMap< MemAddr, linked_ptr<Line> > lines;
+                              inlines(),
+                              lines(),
+                              last_added_inline_nest_level(0) { }
+  // Append inline into corresponding RangeMap.
+  // This function assumes it's called in the order of reading INLINE records.
+  bool AppendInline(linked_ptr<Inline> in);
+
+  RangeMap<MemAddr, linked_ptr<Inline>> inlines;
+  RangeMap<MemAddr, linked_ptr<Line>> lines;
+
  private:
   typedef SourceLineResolverBase::Function Base;
+
+  // A map from inline_nest_level to most recently added Inline* at that level.
+  std::map<int, linked_ptr<Inline>> recent_inlines;
+
+  // The last added inline_nest_level in recent_inlines.
+  int last_added_inline_nest_level;
 };
 
 
@@ -92,7 +107,20 @@ class BasicSourceLineResolver::Module : public SourceLineResolverBase::Module {
 
   // Looks up the given relative address, and fills the StackFrame struct
   // with the result.
-  virtual void LookupAddress(StackFrame* frame) const;
+  virtual void LookupAddress(
+      StackFrame* frame,
+      std::deque<std::unique_ptr<StackFrame>>* inlined_frame) const;
+
+  // Construct inlined frames for frame. Return true on success.
+  // If successfully construct inlined frames for `frame`, `inline_frames` will
+  // be filled with lined frames and frame->source_file_name and
+  // frame->source_line will be update to represents the outermost frame.
+  // If failed, `inline_frames` will be empty and frame remains unchanged.
+  virtual void ConstructInlineFrames(
+      StackFrame* frame,
+      MemAddr address,
+      const RangeMap<uint64_t, linked_ptr<Inline>>& inlines,
+      std::deque<std::unique_ptr<StackFrame>>* inline_frames) const;
 
   // If Windows stack walking information is available covering ADDRESS,
   // return a WindowsFrameInfo structure describing it. If the information
@@ -125,6 +153,12 @@ class BasicSourceLineResolver::Module : public SourceLineResolverBase::Module {
   // Parses a file declaration
   bool ParseFile(char* file_line);
 
+  // Parses an inline origin declaration.
+  bool ParseInlineOrigin(char* inline_origin_line);
+
+  // Parses an inline declaration.
+  linked_ptr<Inline> ParseInline(char* inline_line);
+
   // Parses a function declaration, returning a new Function object.
   Function* ParseFunction(char* function_line);
 
@@ -144,6 +178,7 @@ class BasicSourceLineResolver::Module : public SourceLineResolverBase::Module {
 
   string name_;
   FileMap files_;
+  std::map<int, linked_ptr<InlineOrigin>> inline_origins_;
   RangeMap< MemAddr, linked_ptr<Function> > functions_;
   AddressMap< MemAddr, linked_ptr<PublicSymbol> > public_symbols_;
   bool is_corrupt_;
