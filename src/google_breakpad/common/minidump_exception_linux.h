@@ -42,7 +42,7 @@
 
 #include "google_breakpad/common/breakpad_types.h"
 
-#ifdef _POSIX_C_SOURCE
+#if defined(__unix__) || defined(__linux__) || defined(__APPLE__)
 #include <signal.h>
 #else
 #define SIGHUP 1
@@ -60,6 +60,7 @@
 #define SIGPIPE 13
 #define SIGALRM 14
 #define SIGTERM 15
+#define SIGSTKFLT 16
 #define SIGCHLD 17
 #define SIGCONT 18
 #define SIGSTOP 19
@@ -73,6 +74,7 @@
 #define SIGPROF 27
 #define SIGWINCH 28
 #define SIGIO 29
+#define SIGPWR 30
 #define SIGSYS 31
 #endif
 
