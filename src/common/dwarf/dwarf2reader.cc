@@ -37,6 +37,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <algorithm>
 #include <map>
 #include <memory>
 #include <stack>
@@ -129,10 +130,13 @@ void CompilationUnit::ReadAbbrevs() {
   const uint64_t abbrev_length = iter->second.second - header_.abbrev_offset;
 #endif
 
+  uint64_t highest_number = 0;
+
   while (1) {
     CompilationUnit::Abbrev abbrev;
     size_t len;
     const uint64_t number = reader_->ReadUnsignedLEB128(abbrevptr, &len);
+    highest_number = std::max(highest_number, number);
 
     if (number == 0)
       break;
@@ -170,9 +174,17 @@ void CompilationUnit::ReadAbbrevs() {
                            value);
       abbrev.attributes.push_back(abbrev_attr);
     }
-    assert(abbrev.number == abbrevs_->size());
     abbrevs_->push_back(abbrev);
   }
+
+  // Account of cases where entries are out of order.
+  std::sort(abbrevs_->begin(), abbrevs_->end(),
+    [](const CompilationUnit::Abbrev& lhs, const CompilationUnit::Abbrev& rhs) {
+      return lhs.number < rhs.number;
+  });
+
+  // Ensure that there are no missing sections.
+  assert(abbrevs_->size() == highest_number + 1);
 }
 
 // Skips a single DIE's attributes.
